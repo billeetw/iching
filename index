@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>易經卦象生成器（本卦、之卦和宜變之爻）</title>
+    <style>
+        body {
+            font-family: 'SimSun', 'STSong', 'Songti SC', serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        #result {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .hexagram-drawing {
+            font-family: monospace;
+            white-space: pre;
+            font-size: 24px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+        .changing-line {
+            color: red;
+        }
+        #current-yao, #yibian-yao {
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .hexagram-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .hexagram-container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .hexagram {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>易經卦象生成器</h1>
+        <button id="generate-button" onclick="generateYao()">生成爻</button>
+        <div id="result">
+            <div id="current-yao"></div>
+            <div class="hexagram-container">
+                <div class="hexagram">
+                    <h2>本卦</h2>
+                    <pre id="original-hexagram" class="hexagram-drawing"></pre>
+                    <div id="original-hexagram-name" class="hexagram-name"></div>
+                </div>
+                <div class="hexagram">
+                    <h2>之卦</h2>
+                    <pre id="changed-hexagram" class="hexagram-drawing"></pre>
+                    <div id="changed-hexagram-name" class="hexagram-name"></div>
+                </div>
+            </div>
+            <div id="yibian-yao"></div>
+        </div>
+    </div>
+
+    <script>
+        const hexagramNames = {
+            '111111': '乾為天', '000000': '坤為地', '100010': '水雷屯', '010001': '山水蒙',
+            '111010': '水天需', '010111': '天水訟', '010000': '地水師', '000010': '水地比',
+            '111011': '風天小畜', '110111': '天澤履', '111000': '地天泰', '000111': '天地否',
+            '101111': '天火同人', '111101': '火天大有', '001000': '地山謙', '000100': '雷地豫',
+            '011001': '澤雷隨', '100110': '山風蠱', '110000': '地澤臨', '000011': '風地觀',
+            '101001': '火雷噬嗑', '100101': '山火賁', '000001': '山地剝', '100000': '地雷復',
+            '111001': '天雷無妄', '100111': '山天大畜', '100001': '山雷頤', '011110': '澤風大過',
+            '010010': '坎為水', '101101': '離為火', '011100': '澤山咸', '001110': '雷風恆',
+            '111100': '天山遯', '001111': '雷天大壯', '101000': '火地晉', '000101': '地火明夷',
+            '101011': '火風鼎', '110101': '雷火豐', '001010': '山澤損', '010100': '風雷益',
+            '110001': '澤天夬', '100011': '天風姤', '000110': '澤地萃', '011000': '地風升',
+            '011010': '澤水困', '010110': '水風井', '011101': '澤火革', '101110': '火風鼎',
+            '001001': '雷澤歸妹', '100100': '雷火豐', '110110': '風山漸', '011011': '山火賁',
+            '010011': '巽為風', '110010': '兌為澤', '110100': '風水渙', '001100': '水澤節',
+            '101010': '中孚', '010101': '小過', '001011': '既濟', '110011': '未濟'
+        };
+
+        let hexagram = [];
+        let currentYao = 0;
+
+        function getRandomYao() {
+            const num = Math.floor(Math.random() * 4) + 6; // 6, 7, 8, or 9
+            return {
+                number: num,
+                binary: num % 2 === 1 ? '1' : '0',
+                changing: num === 6 || num === 9
+            };
+        }
+
+        function generateYao() {
+            if (currentYao < 6) {
+                const yao = getRandomYao();
+                hexagram.push(yao);
+                currentYao++;
+
+                updateDisplay();
+
+                if (currentYao === 6) {
+                    document.getElementById('generate-button').textContent = '重新開始';
+                    showHexagrams();
+                    showYibianYao();
+                }
+            } else {
+                // Reset for a new hexagram
+                hexagram = [];
+                currentYao = 0;
+                document.getElementById('generate-button').textContent = '生成爻';
+                document.getElementById('original-hexagram-name').textContent = '';
+                document.getElementById('changed-hexagram-name').textContent = '';
+                document.getElementById('changed-hexagram').textContent = '';
+                document.getElementById('yibian-yao').textContent = '';
+                updateDisplay();
+            }
+        }
+
+        function updateDisplay() {
+            const currentYaoElement = document.getElementById('current-yao');
+            const originalHexagramDrawing = document.getElementById('original-hexagram');
+
+            if (currentYao > 0) {
+                const yao = hexagram[currentYao - 1];
+                const yaoName = yao.binary === '1' ? '陽' : '陰';
+                const changingText = yao.changing ? '（變爻）' : '';
+                currentYaoElement.textContent = `第${currentYao}爻：${yaoName}爻 ${yao.number} ${changingText}`;
+            } else {
+                currentYaoElement.textContent = '';
+            }
+
+            originalHexagramDrawing.innerHTML = hexagram.map((yao, index) => {
+                const line = yao.binary === '1' ? '———' : '— —';
+                return `<span class="${yao.changing ? 'changing-line' : ''}">${line}</span>`;
+            }).reverse().join('\n');
+        }
+
+        function showHexagrams() {
+            const originalBinary = hexagram.map(yao => yao.binary).join('');
+            const changedBinary = hexagram.map(yao => yao.changing ? (yao.binary === '1' ? '0' : '1') : yao.binary).join('');
+
+            const originalName = hexagramNames[originalBinary] || '未知卦象';
+            const changedName = hexagramNames[changedBinary] || '未知卦象';
+
+            document.getElementById('original-hexagram-name').textContent = `本卦：${originalName}`;
+
+            const changedHexagramDrawing = document.getElementById('changed-hexagram');
+            changedHexagramDrawing.innerHTML = hexagram.map((yao, index) => {
+                const changedLine = yao.changing ? (yao.binary === '1' ? '— —' : '———') : (yao.binary === '1' ? '———' : '— —');
+                return `<span>${changedLine}</span>`;
+            }).reverse().join('\n');
+
+            if (originalBinary !== changedBinary) {
+                document.getElementById('changed-hexagram-name').textContent = `之卦：${changedName}`;
+            } else {
+                document.getElementById('changed-hexagram-name').textContent = '無變爻，無之卦';
+            }
+        }
+
+        function showYibianYao() {
+            const sum = hexagram.reduce((acc, yao) => acc + yao.number, 0);
+            const yibianNumber = 55 - sum;
+            const yibianIndex = (yibianNumber - 1) % 6;
+            const yibianYao = hexagram[yibianIndex];
+
+            let yibianText = '';
+            if (yibianYao.changing) {
+                yibianText = `宜變之爻：第${yibianIndex + 1}爻`;
+            } else {
+                yibianText = '無宜變';
+            }
+
+            document.getElementById('yibian-yao').textContent = yibianText;
+        }
+    </script>
+</body>
+</html>
